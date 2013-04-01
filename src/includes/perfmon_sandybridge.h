@@ -47,6 +47,10 @@
 #define NUM_COUNTERS_SANDYBRIDGE 11
 #endif
 
+#ifndef MAX_ENERGY_COUNT
+#define MAX_ENERGY_COUNT 0xFFFFFFFF
+#endif
+
 static int perfmon_numCountersSandybridge = NUM_COUNTERS_SANDYBRIDGE;
 static int perfmon_numGroupsSandybridge = NUM_GROUPS_SANDYBRIDGE;
 static int perfmon_numArchEventsSandybridge = NUM_ARCH_EVENTS_SANDYBRIDGE;
@@ -672,9 +676,12 @@ perfmon_stopCountersThread_sandybridge(int thread_id)
                 case POWER:
                     if(haveLock)
                     {
-                        perfmon_threadData[thread_id].counters[i].counterData =
-                            power_info.energyUnit * ( power_read(cpu_id, perfmon_threadData[thread_id].counters[i].configRegister) -
-                                    perfmon_threadData[thread_id].counters[i].counterRegister);
+                        int64_t temp_read = power_read(cpu_id, perfmon_threadData[thread_id].counters[i].configRegister);
+                        if (temp_read - (int64_t)perfmon_threadData[thread_id].counters[i].counterRegister <= 0) {
+                            temp_read += MAX_ENERGY_COUNT;
+                        }
+                        perfmon_threadData[thread_id].counters[i].counterData = power_info.energyUnit * (temp_read -
+                                ((int64_t)perfmon_threadData[thread_id].counters[i].counterRegister));
                     }
                     break;
 
